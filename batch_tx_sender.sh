@@ -1,115 +1,50 @@
-#!/bin/bash
+const { ethers } = require("ethers");
+const axios = require("axios");
 
-function echo_blue_bold {
-    echo -e "\033[1;34m$1\033[0m"
-}
+const rpcUrl = "https://endpoints.omniatech.io/v1/arbitrum/one/public";
+const privateKey = "your_private_key_here";
+const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
+const wallet = new ethers.Wallet(privateKey, provider);
 
-echo
-echo_blue_bold "Enter RPC URL of the network:"
-read providerURL
-echo
-echo_blue_bold "Enter private key:"
-read privateKeys
-echo
-echo_blue_bold "Enter contract address:"
-read contractAddress
-echo
-echo_blue_bold "Enter transaction data (in hex):"
-read transactionData
-echo
-echo_blue_bold "Enter gas limit:"
-read gasLimit
-echo
-echo_blue_bold "Enter gas price (in gwei):"
-read gasPrice
-echo
-echo_blue_bold "Enter number of transactions to send:"
-read numberOfTransactions
-echo
+const targets = [
+  "0xDE30D6edD20c573746758E817782e43E747d56CC",
+  "0xDE30D6edD20c573746758E817782e43E747d56CC",
+  "0xDE30D6edD20c573746758E817782e43E747d56CC"
+];
 
-# Install nvm if not already installed
-if ! command -v nvm &> /dev/null; then
-    echo_blue_bold "Installing nvm..."
-    wget -qO- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
-    source ~/.nvm/nvm.sh
-    echo
-else
-    echo_blue_bold "nvm is already installed."
-fi
-echo
+const dataPayloads = [
+  "0x93fe11ff000000000000000000000000d8f09a9b6bac0b86278aac437c647255c2815afb7355534400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005f68e8131ecf800004c617965725a65726f000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000027b10000000000000000000000000000000000000000000000000000000000000000",
+  "0x93fe11ff000000000000000000000000d8f09a9b6bac0b86278aac437c647255c2815afb7355534400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005f68e8131ecf800004c617965725a65726f000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000027b10000000000000000000000000000000000000000000000000000000000000000",
+  "0x93fe11ff000000000000000000000000d8f09a9b6bac0b86278aac437c647255c2815afb7355534400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005f68e8131ecf800004c617965725a65726f000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000027b10000000000000000000000000000000000000000000000000000000000000000"
+];
 
-# Install Node.js version 18 using nvm if not already installed
-if ! nvm ls | grep -q 'v18.'; then
-    echo_blue_bold "Installing Node.js version 18..."
-    nvm install 18
-    nvm use 18
-    nvm alias default 18
-    echo
-else
-    echo_blue_bold "Node.js version 18 is already installed."
-fi
-echo
+const sendTransaction = async (to, data) => {
+  try {
+    const tx = await wallet.sendTransaction({
+      to,
+      data,
+      gasLimit: ethers.utils.hexlify(500000)
+    });
+    console.log(`Tx Hash: ${tx.hash}`);
+    const receipt = await tx.wait();
+    console.log(`Transaction mined: ${receipt.transactionHash}`);
+  } catch (error) {
+    console.error(`Error sending transaction: ${error}`);
+  }
+};
 
-# Install ethers if not already installed
-if ! npm list ethers@5.5.4 >/dev/null 2>&1; then
-  echo_blue_bold "Installing ethers..."
-  npm install ethers@5.5.4
-  echo
-else
-  echo_blue_bold "Ethers is already installed."
-fi
-echo
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-temp_node_file=$(mktemp /tmp/node_script.XXXXXX.js)
+const randomDelay = (min, max) => Math.floor(Math.random() * (max - min + 1) + min);
 
-cat << EOF > $temp_node_file
-const ethers = require("ethers");
-
-const providerURL = "${providerURL}";
-const provider = new ethers.providers.JsonRpcProvider(providerURL);
-
-const privateKeys = "${privateKeys}";
-
-const contractAddress = "${contractAddress}";
-
-const transactionData = "${transactionData}";
-
-const numberOfTransactions = ${numberOfTransactions};
-
-async function sendTransaction(wallet) {
-    const tx = {
-        to: contractAddress,
-        value: 0,
-        gasLimit: ethers.BigNumber.from(${gasLimit}),
-        gasPrice: ethers.utils.parseUnits("${gasPrice}", 'gwei'),
-        data: transactionData,
-    };
-
-    try {
-        const transactionResponse = await wallet.sendTransaction(tx);
-        console.log("\033[1;35mTx Hash:\033[0m", transactionResponse.hash);
-        const receipt = await transactionResponse.wait();
-        console.log("");
-    } catch (error) {
-        console.error("Error sending transaction:", error);
-    }
-}
-
-async function main() {
-    const wallet = new ethers.Wallet(privateKeys, provider);
-
-    for (let i = 0; i < numberOfTransactions; i++) {
-        console.log("Sending transaction", i + 1, "of", numberOfTransactions);
-        await sendTransaction(wallet);
-    }
-}
+const main = async () => {
+  for (let i = 0; i < targets.length; i++) {
+    console.log(`Sending transaction ${i + 1} of ${targets.length}`);
+    await sendTransaction(targets[i], dataPayloads[i]);
+    const delayTime = randomDelay(30000, 120000);
+    console.log(`Waiting for ${delayTime / 1000} seconds before next transaction...`);
+    await delay(delayTime);
+  }
+};
 
 main().catch(console.error);
-EOF
-
-NODE_PATH=$(npm root -g):$(pwd)/node_modules node $temp_node_file
-
-rm $temp_node_file
-echo
-echo_blue_bold "stay frosty"
-echo
