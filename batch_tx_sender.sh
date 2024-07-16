@@ -4,39 +4,7 @@ function echo_blue_bold {
     echo -e "\033[1;34m$1\033[0m"
 }
 
-# Install necessary packages
-echo_blue_bold "Installing necessary packages..."
-sudo apt update
-sudo apt install -y curl git jq build-essential
-
-# Install Node.js and npm if not installed
-if ! command -v node &> /dev/null
-then
-    echo_blue_bold "Installing Node.js..."
-    curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash -
-    sudo apt install -y nodejs
-fi
-
-# Install npm@10.8.1 globally if not installed
-if ! npm list -g npm@10.8.1 >/dev/null 2>&1; then
-  echo_blue_bold "Installing npm@10.8.1..."
-  npm install -g npm@10.8.1
-  echo
-else
-  echo_blue_bold "npm@10.8.1 is already installed."
-fi
-
-# Install ethers@5.5.4 if not installed
-if ! npm list -g ethers@5.5.4 >/dev/null 2>&1; then
-  echo_blue_bold "Installing ethers@5.5.4..."
-  npm install -g ethers@5.5.4
-  echo
-else
-  echo_blue_bold "Ethers is already installed."
-fi
-
 echo
-
 echo_blue_bold "Enter RPC URL of the network:"
 read providerURL
 echo
@@ -57,6 +25,39 @@ read gasPrice
 echo
 echo_blue_bold "Enter number of transactions to send:"
 read numberOfTransactions
+echo
+
+# Install nvm if not already installed
+if ! command -v nvm &> /dev/null; then
+    echo_blue_bold "Installing nvm..."
+    wget -qO- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
+    source ~/.nvm/nvm.sh
+    echo
+else
+    echo_blue_bold "nvm is already installed."
+fi
+echo
+
+# Install Node.js version 18 using nvm if not already installed
+if ! nvm ls | grep -q 'v18.'; then
+    echo_blue_bold "Installing Node.js version 18..."
+    nvm install 18
+    nvm use 18
+    nvm alias default 18
+    echo
+else
+    echo_blue_bold "Node.js version 18 is already installed."
+fi
+echo
+
+# Install ethers if not already installed
+if ! npm list ethers@5.5.4 >/dev/null 2>&1; then
+  echo_blue_bold "Installing ethers..."
+  npm install ethers@5.5.4
+  echo
+else
+  echo_blue_bold "Ethers is already installed."
+fi
 echo
 
 temp_node_file=$(mktemp /tmp/node_script.XXXXXX.js)
